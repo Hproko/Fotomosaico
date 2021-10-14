@@ -65,7 +65,7 @@ int main (int argc, char **argv){
 
 	//escolhe de onde vem a imagem de entrada
 	FILE *input_img;
-	if(! strcmp(img_entrada, ""))
+	if(flag_i == 0)
 		input_img = stdin;
 	else
 		input_img = fopen(img_entrada, "r");
@@ -91,7 +91,7 @@ int main (int argc, char **argv){
 	
 	
 	FILE *output_img;
-	if(! strcmp(img_saida, ""))
+	if(flag_o == 0)
 		output_img = stdout;
 	else
 		output_img = fopen(img_saida,"w");
