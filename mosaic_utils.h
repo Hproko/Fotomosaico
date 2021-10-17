@@ -15,7 +15,7 @@ struct cores{
 //tipo de PPM
 //Valor maximo
 //Media das cores da pastilha
-//matriz de caracteres
+//matriz que contem todos os rgb da imagem
 struct imagem{
 	int width;
 	int height;
@@ -50,8 +50,5 @@ void substitui_blocos(struct imagem* img, struct imagem *vetor_imgs, int num_pas
 
 void desaloca_memoria(struct imagem *vetor, struct imagem *img_principal, int num_pastilhas);
 //Libera todos os espaços de memoria utilizados
-
-
-
 
 #endif

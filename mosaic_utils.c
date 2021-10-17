@@ -9,7 +9,7 @@
 
 
 
-
+//Funcao que retornar a quantidade de pastilhas 
 int qntd_pastilhas(char *dir_pastilhas){
 	
 	DIR *diretorio;
@@ -18,13 +18,13 @@ int qntd_pastilhas(char *dir_pastilhas){
 
 	diretorio = opendir(dir_pastilhas);
 	if(! diretorio){
-		perror("Nao foi possivel abrir o diretorio");
+		fprintf(stderr, "Nao foi possivel abrir o diretorio");
 		exit(1);
 	}
 
 	proxima_pastilha = readdir(diretorio);
 	if(! proxima_pastilha){
-		perror("Nao foi possivel encontrar pastilhas");
+		fprintf(stderr, "Nao foi possivel encontrar pastilhas");
 		exit(1);
 	}
 	
@@ -43,7 +43,7 @@ int qntd_pastilhas(char *dir_pastilhas){
 }
 
 
-//cria uma matriz e a preenche com caracteres ou numeros
+//cria uma matriz e a preenche com caracteres ou numeros dependendo se o ppm eh p3 ou p6
 unsigned char** carrega_pixels(FILE *arq, int altura, int largura,char tipo[2]){
 	
 	int i,k;
@@ -53,14 +53,14 @@ unsigned char** carrega_pixels(FILE *arq, int altura, int largura,char tipo[2]){
 	//alocacao dinamica de matriz
 	matriz = malloc(altura * sizeof(unsigned char*));
 	if(! matriz){
-		printf("Erro ao alocar memoria\n");
+		fprintf(stderr, "Erro ao alocar memoria\n");
 		exit(1);
 	}
 	
 	for(i=0; i<altura; i++){
 		matriz[i] = malloc(largura * 3 * sizeof(unsigned char));
 		if(! matriz[i]){
-			printf("Erro ao alocar memoria\n");
+			fprintf(stderr, "Erro ao alocar memoria\n");
 			exit(1);
 		}
 	}
@@ -117,14 +117,14 @@ struct cores calcula_media(unsigned char **matriz, int x_ini, int y_ini,  int al
 //Cria uma estrutura imagem, preenche e retorna a estrutura preenchida
 struct imagem carrega_imagem(FILE *arq){
 	
-	struct imagem pastilha;
+	struct imagem img;
 
 	char line[256];
 	
 	long int pos;
 	
-	fgets(pastilha.tipo, 3, arq);
-	if(strcmp(pastilha.tipo,"P6") && strcmp(pastilha.tipo,"P3")){
+	fgets(img.tipo, 3, arq);
+	if(strcmp(img.tipo,"P6") && strcmp(img.tipo,"P3")){
 		fprintf(stderr, "Pastilha ou imagem com formato nao suportado\n");
 		exit(1);
 	}
@@ -141,22 +141,30 @@ struct imagem carrega_imagem(FILE *arq){
 	
 	
 	//captura largura, altura e Valor maximo
-	fscanf(arq, "%d", &pastilha.width);
-	fscanf(arq, "%d", &pastilha.height);
-	fscanf(arq, "%d", &pastilha.max);
+	fscanf(arq, "%d", &img.width);
+	fscanf(arq, "%d", &img.height);
+	fscanf(arq, "%d", &img.max);
 	
 	getc(arq);//come outro \n
 	
 	
 	//pixel aponta para nova matriz de pixels
-	pastilha.pixel = carrega_pixels(arq, pastilha.height, pastilha.width,pastilha.tipo);
+	img.pixel = carrega_pixels(arq, img.height, img.width, img.tipo);
 	
 	// media recebe a media do rgb da pastilha
-	pastilha.media = calcula_media(pastilha.pixel, 0, 0, pastilha.height, pastilha.width);
+	if(img.width < 50 && img.height < 50)
+		
+		img.media = calcula_media(img.pixel, 0, 0, img.height, img.width);
+	
+	else{
+	//nao eh necessario calcular a media da imagem de entrada
+		img.media.r = 0;
+		img.media.g = 0;
+		img.media.b = 0;
+	}
 	
 	
-	
-	return pastilha;
+	return img;
 }
 
 
@@ -167,8 +175,9 @@ struct imagem* le_pastilhas(char *dir_pastilhas, int num_pastilhas){
 	//alocacao dinamica de um vetor de imagens
 	struct imagem* vetor_imgs;
 	vetor_imgs = malloc(num_pastilhas * sizeof(struct imagem));
+	
 	if(! vetor_imgs){
-		printf("Erro ao alocar memoria\n");
+		fprintf(stderr, "Erro ao alocar memoria\n");
 		exit(1);
 	}
 
@@ -176,17 +185,19 @@ struct imagem* le_pastilhas(char *dir_pastilhas, int num_pastilhas){
 	//abertura do diretorio
 	DIR *diretorio;		
 	diretorio = opendir(dir_pastilhas);
+	
 	if(! diretorio){
-	perror("Nao foi possivel abrir o diretorio");
-	exit(1);
+		fprintf(stderr, "Nao foi possivel abrir o diretorio");
+		exit(1);
 	}
 
 
 	//captura do arquivo no diretorio
 	struct dirent *proxima_pastilha;
 	proxima_pastilha = readdir(diretorio);
+	
 	if(! proxima_pastilha){
-		perror("Nao foi possivel encontrar pastilhas");
+		fprintf(stderr, "Nao foi possivel encontrar pastilhas");
 		exit(1);
 	}
 	
@@ -219,7 +230,8 @@ struct imagem* le_pastilhas(char *dir_pastilhas, int num_pastilhas){
 			index++;
 
 			//reseta a string com o caminho ate arquivo
-			memset(caminho,0,strlen(caminho));
+			//memset(caminho,0,strlen(caminho));
+			caminho[0] = '\0';
 		}
 		proxima_pastilha = readdir(diretorio);
 	}
@@ -315,14 +327,12 @@ void substitui_blocos(struct imagem* img, struct imagem *vetor_imgs, int num_pas
 			pastilha = procura_pastilha(media,num_pastilhas,vetor_imgs);
 			
 			replace_pixels(alt_p, 3*larg_p-2, i, k, img->pixel, pastilha);
-
-		//	printf("%d %d %d\n", media.r, media.g, media.b);
 		}
 	}
 
 	
-	//Caso exista borda em baixo maior que um pixel preenche a borda
-	if(img->height % alt_p > 1){
+	//Caso exista borda em baixo maior que dois pixels preenche a borda
+	if(img->height % alt_p > 2){
 		
 		i = max_i ;
 
@@ -335,7 +345,6 @@ void substitui_blocos(struct imagem* img, struct imagem *vetor_imgs, int num_pas
 			pastilha = procura_pastilha(media,num_pastilhas,vetor_imgs);
 			
 			replace_pixels(siz_bottom_edge, 3*larg_p-2, i, k, img->pixel, pastilha);
-		
 		}
 	}
 
@@ -383,7 +392,7 @@ void monta_imagem( struct imagem *img, FILE *arq){
 }
 
 
-//Funcao que testa se todos os argumentos foram passados corretamente
+//Funcao que testa se todos os arquivos de entrada foram passados corretamente
 int entrada_invalida(int flag_i, int flag_o){
 	
 	if(flag_i == 0 && flag_o == 0)
